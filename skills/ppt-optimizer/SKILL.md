@@ -1,7 +1,7 @@
 ---
 name: ppt-optimizer
 description: 优化已有的 PowerPoint 演示文稿 — 放大字体、丰富内容、美化排版、统一配色。适用于任何 PPT 文件的批量优化、格式统一、内容增强。触发词：优化PPT、PPT字体放大、美化PPT、PPT改版、PPT润色、enhance PPT、polish slides。
-version: 1.0.0
+version: 1.1.0
 author: d82959222-creator
 ---
 
@@ -19,6 +19,35 @@ author: d82959222-creator
 | 排版拥挤/松散 | 调整布局和间距 |
 | 缺少视觉层次 | 添加标题栏、卡片、图标 |
 
+---
+
+## ⚙️ 用户偏好（每次优化前必须确认）
+
+**以下偏好已由用户确认，作为默认配置。首次使用时向用户展示并允许修改。**
+
+### 默认配置
+
+| 配置项 | 默认值 | 说明 |
+|--------|--------|------|
+| 🎨 配色方案 | **深蓝商务风** | 主色 #1F4E79 深蓝 + #C0392B 暗红点缀 |
+| 🇨🇳 语言 | **中文为主** | 标题正文用中文，英文术语保留 |
+| 🔤 字体 | **微软雅黑** | Windows 最佳中文显示字体 |
+| 📐 字号底线 | **正文 ≥ 14pt，表格 ≥ 11pt** | 投影/屏幕远距离必须能看清 |
+| 📏 幻灯片比例 | **16:9 宽屏** | 13.33" × 7.5" |
+
+### 优化优先级（从高到低）
+
+```
+1. 🔤 字体放大 — 第一优先级，字号不够大一切都是白搭
+2. 📐 排版整齐 — 对齐、间距、留白规范
+3. 🎨 配色统一 — 通篇一套配色，不花哨
+4. 📝 内容增强 — 在前三项到位的基础上再充实内容
+```
+
+> **重要**：除非用户在当次请求中明确指定了不同的偏好，否则始终使用以上默认配置。如果用户是首次使用本 skill，先展示上表并问一句「要按这个配置来吗？还是想调整？」
+
+---
+
 ## 触发条件
 
 当用户提出以下需求时，调用本 skill：
@@ -29,6 +58,12 @@ author: d82959222-creator
 - 任何对现有 PPT 文件的改进请求
 
 ## 工作流程
+
+### 第〇步：确认偏好（首次必做）
+
+如果当前对话中尚未确认用户偏好，**必须先展示默认配置表并询问用户是否需要调整**。用户确认后，将偏好记录在对话中，然后继续。
+
+如果用户说"按默认的来"或直接同意，则直接进入下一步。
 
 ### 第一步：分析现有 PPT
 
@@ -82,12 +117,16 @@ for i, slide in enumerate(prs.slides):
 
 ### 第二步：确定优化策略
 
-根据分析结果，向用户确认优化方向：
+根据分析结果，按以下**固定优先级**执行优化：
 
-1. **字体放大** — 建议比例：标题 ≥36pt，正文 ≥14pt，表格 ≥11pt
-2. **内容增强** — 为空洞的幻灯片补充要点、数据、说明
-3. **配色统一** — 应用专业配色方案
-4. **布局优化** — 调整间距、对齐、留白
+| 优先级 | 优化项 | 标准 | 说明 |
+|--------|--------|------|------|
+| 🔤 P0 | **字体放大** | 标题 ≥36pt, 正文 ≥14pt, 表格 ≥11pt | 第一优先级，未达标不进入下一步 |
+| 📐 P1 | **排版整理** | 对齐一致、边距统一、留白合理 | 调整形状位置和间距 |
+| 🎨 P2 | **配色统一** | 全部使用 `business_dark` 深蓝商务风 | 覆盖原有杂色 |
+| 📝 P3 | **内容增强** | 空洞页面补充 3-5 个实质要点 | 在前三项到位后最后做 |
+
+> **原则**：字不够大 → 其他做得再好也白费。字体达标后才依次处理排版、配色、内容。
 
 ### 第三步：执行优化
 
@@ -171,30 +210,36 @@ def enrich_slide_content(slide, context=""):
 #### 3.3 配色方案
 
 ```python
-# 推荐配色方案
+# 配色方案（默认使用 business_dark 深蓝商务风，除非用户指定其他）
 COLOR_SCHEMES = {
-    "business_dark": {
-        "primary": RGBColor(0x1F, 0x4E, 0x79),      # 深蓝
-        "accent": RGBColor(0xC0, 0x39, 0x2B),        # 暗红
-        "light": RGBColor(0xF2, 0xF2, 0xF2),         # 浅灰
-        "text": RGBColor(0x33, 0x33, 0x33),           # 深灰文字
-        "background": RGBColor(0xFF, 0xFF, 0xFF),     # 白色背景
+    "business_dark": {                                  # ⭐ 默认方案
+        "name": "深蓝商务风",
+        "primary": RGBColor(0x1F, 0x4E, 0x79),         # 深蓝 — 标题栏、强调
+        "accent": RGBColor(0xC0, 0x39, 0x2B),           # 暗红 — 关键数据、警示
+        "light": RGBColor(0xF2, 0xF2, 0xF2),            # 浅灰 — 卡片背景
+        "text": RGBColor(0x33, 0x33, 0x33),              # 深灰 — 正文
+        "background": RGBColor(0xFF, 0xFF, 0xFF),        # 白色 — 幻灯片背景
     },
     "modern_teal": {
-        "primary": RGBColor(0x00, 0x6D, 0x77),       # 青色
-        "accent": RGBColor(0xE2, 0x95, 0x35),         # 金色
-        "light": RGBColor(0xED, 0xF6, 0xF9),         # 浅青
+        "name": "现代科技风",
+        "primary": RGBColor(0x00, 0x6D, 0x77),          # 青色
+        "accent": RGBColor(0xE2, 0x95, 0x35),            # 金色
+        "light": RGBColor(0xED, 0xF6, 0xF9),            # 浅青
         "text": RGBColor(0x2D, 0x2D, 0x2D),
         "background": RGBColor(0xFF, 0xFF, 0xFF),
     },
     "warm_simple": {
-        "primary": RGBColor(0x8B, 0x45, 0x13),       # 暖棕
-        "accent": RGBColor(0xD4, 0x8B, 0x2C),         # 暖橙
-        "light": RGBColor(0xFD, 0xF5, 0xE6),         # 暖白
+        "name": "暖色简约风",
+        "primary": RGBColor(0x8B, 0x45, 0x13),          # 暖棕
+        "accent": RGBColor(0xD4, 0x8B, 0x2C),            # 暖橙
+        "light": RGBColor(0xFD, 0xF5, 0xE6),            # 暖白
         "text": RGBColor(0x3D, 0x3D, 0x3D),
         "background": RGBColor(0xFF, 0xFA, 0xF5),
-    }
+    },
 }
+
+# 始终使用默认配色
+DEFAULT_SCHEME = "business_dark"
 ```
 
 #### 3.4 添加视觉元素
